@@ -2,6 +2,12 @@
 
 A lightweight Chrome Extension that lets you customize Twitter/X interface colors with ease. Override inline styles and generated CSS classes to apply your own color themes.
 
+---
+
+☕ **Support the Project**: Love XTheme Engine? [Buy me a coffee!](https://buymeacoffee.com/jeffbehnke)
+
+---
+
 ## Features
 
 - **6 Prebuilt Themes**: Dark Default, Midnight Blue, Deep Purple, Ocean Cyan, Amber Fire, and Monochrome
