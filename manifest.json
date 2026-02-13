@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "XTheme Engine",
+  "version": "1.0.0",
+  "description": "Customize Twitter/X interface colors",
+  "permissions": ["storage"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content/inject.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "XTheme Engine"
+  }
+}

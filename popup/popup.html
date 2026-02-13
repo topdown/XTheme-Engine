@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTheme Engine</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>XTheme Engine</h1>
+      <p class="subtitle">Customize Twitter/X Colors</p>
+    </header>
+
+    <main>
+      <section class="theme-selector">
+        <label for="theme-select">Active Theme:</label>
+        <select id="theme-select">
+          <option value="darkDefault">Dark Default</option>
+          <option value="midnightBlue">Midnight Blue</option>
+          <option value="deepPurple">Deep Purple</option>
+          <option value="oceanCyan">Ocean Cyan</option>
+          <option value="amberfireSoft">Amber Fire</option>
+          <option value="monochrome">Monochrome</option>
+        </select>
+      </section>
+
+      <section class="actions">
+        <button id="apply-btn" class="btn btn-primary">Apply Theme</button>
+      </section>
+
+      <section class="status">
+        <p id="status-message" class="status-message"></p>
+      </section>
+
+      <footer>
+        <small>Customizations persist across sessions</small>
+      </footer>
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
