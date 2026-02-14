@@ -254,6 +254,17 @@
 	.xtheme-reply-button div {
 		color: ${colors.textPrimary} !important;
 	}
+
+	/* Follow button specific styles */
+	.xtheme-follow-button {
+		color: ${colors.textPrimary} !important;
+		background-color: ${colors.accentBlue} !important;
+	}
+
+	.xtheme-follow-button span,
+	.xtheme-follow-button div {
+		color: ${colors.textPrimary} !important;
+	}
   `;
 	}
 
@@ -275,6 +286,9 @@
 			} else if (buttonText === 'Reply' || buttonText === 'REPLY' || ariaLabel === 'Reply') {
 				// Add our custom class for styling Reply buttons
 				button.classList.add('xtheme-reply-button');
+			} else if (buttonText === 'Follow' || buttonText === 'FOLLOW' || (ariaLabel && ariaLabel.startsWith('Follow '))) {
+				// Add our custom class for styling Follow buttons
+				button.classList.add('xtheme-follow-button');
 			}
 		});
 	}
