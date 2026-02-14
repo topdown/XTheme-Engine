@@ -1,5 +1,6 @@
 // Popup script for theme selection
 
+const enableToggle = document.getElementById('enable-toggle');
 const themeSelect = document.getElementById('theme-select');
 const applyBtn = document.getElementById('apply-btn');
 const statusMessage = document.getElementById('status-message');
@@ -33,9 +34,13 @@ function rgbToHex(rgb) {
 
 // Load current theme and custom colors on popup open
 function loadCurrentSettings() {
-  chrome.storage.sync.get(['activeTheme', 'customOverrides'], (data) => {
+  chrome.storage.sync.get(['extensionEnabled', 'activeTheme', 'customOverrides'], (data) => {
+    const extensionEnabled = data.extensionEnabled !== false; // Default to enabled
     const activeTheme = data.activeTheme || 'darkDefault';
     const customOverrides = data.customOverrides || {};
+    
+    enableToggle.checked = extensionEnabled;
+    updateUIState(extensionEnabled);
     
     themeSelect.value = activeTheme;
     
@@ -60,9 +65,9 @@ function loadCurrentSettings() {
 // Apply theme when button clicked
 applyBtn.addEventListener('click', () => {
   const selectedTheme = themeSelect.value;
-  chrome.storage.sync.set({ activeTheme: selectedTheme }, () => {
-    showStatus(`✓ Theme applied: ${selectedTheme}`);
-  });
+  chrome.storage.sync.set({ activeTheme: selectedTheme });
+  chrome.storage.local.set({ activeTheme: selectedTheme });
+  showStatus(`✓ Theme applied: ${selectedTheme}`);
 });
 
 // Handle color picker changes
@@ -71,23 +76,22 @@ colorPickers.forEach((picker) => {
     const colorKey = picker.dataset.color;
     const hexColor = picker.value;
     
-    // Get current overrides
     chrome.storage.sync.get(['customOverrides'], (data) => {
       const customOverrides = data.customOverrides || {};
       customOverrides[colorKey] = hexColor;
-      chrome.storage.sync.set({ customOverrides }, () => {
-        showStatus('✓ Color updated');
-      });
+      chrome.storage.sync.set({ customOverrides });
+      chrome.storage.local.set({ customOverrides });
+      showStatus('✓ Color updated');
     });
   });
 });
 
 // Reset custom colors
 resetColorsBtn.addEventListener('click', () => {
-  chrome.storage.sync.set({ customOverrides: {} }, () => {
-    loadCurrentSettings();
-    showStatus('✓ Reset to theme colors');
-  });
+  chrome.storage.sync.set({ customOverrides: {} });
+  chrome.storage.local.set({ customOverrides: {} });
+  loadCurrentSettings();
+  showStatus('✓ Reset to theme colors');
 });
 
 // Show status message
@@ -99,6 +103,23 @@ function showStatus(message) {
     statusMessage.classList.remove('success');
   }, 2000);
 }
+
+// Update UI state based on enabled status
+function updateUIState(enabled) {
+  themeSelect.disabled = !enabled;
+  applyBtn.disabled = !enabled;
+  colorPickers.forEach(picker => picker.disabled = !enabled);
+  resetColorsBtn.disabled = !enabled;
+}
+
+// Handle extension enable/disable toggle
+enableToggle.addEventListener('change', () => {
+  const enabled = enableToggle.checked;
+  chrome.storage.sync.set({ extensionEnabled: enabled });
+  chrome.storage.local.set({ extensionEnabled: enabled });
+  updateUIState(enabled);
+  showStatus(enabled ? '✓ XTheme Engine enabled' : '✓ XTheme Engine disabled');
+});
 
 // Also apply when theme is changed (optional - auto-apply on select)
 themeSelect.addEventListener('change', () => {

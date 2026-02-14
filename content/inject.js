@@ -1,48 +1,81 @@
 // Inject theme CSS into page
 function injectTheme() {
-  // Create style element
-  const styleElement = document.createElement('style');
-  styleElement.id = 'xtheme-inject';
-  styleElement.setAttribute('data-source', 'xtheme-engine');
-
-  // Load theme from storage
-  chrome.storage.sync.get(['activeTheme', 'customOverrides'], (data) => {
-    const activeTheme = data.activeTheme || 'darkDefault';
-    const customOverrides = data.customOverrides || {};
-
-    // Import themes
-    const themes = getThemes();
-    const theme = themes[activeTheme] || themes.darkDefault;
-
-    // Merge with custom overrides
-    const colors = { ...theme.colors, ...customOverrides };
-
-    // Build CSS
-    let css = buildThemeCSS(colors);
-    styleElement.textContent = css;
-
-    // Inject into head
-    if (document.head) {
-      document.head.appendChild(styleElement);
-    } else {
-      // If head isn't ready, wait and retry
-      document.addEventListener('readystatechange', () => {
-        if (document.head && !styleElement.parentElement) {
-          document.head.appendChild(styleElement);
+  // Load theme from local storage first (faster), then sync
+  chrome.storage.local.get(['extensionEnabled', 'activeTheme', 'customOverrides'], (localData) => {
+    const useLocal = localData.extensionEnabled !== undefined;
+    
+    const getStorageData = useLocal 
+      ? Promise.resolve(localData)
+      : new Promise((resolve) => {
+          chrome.storage.sync.get(['extensionEnabled', 'activeTheme', 'customOverrides'], resolve);
+        });
+    
+    Promise.resolve(getStorageData).then((data) => {
+      const extensionEnabled = data.extensionEnabled !== false;
+      
+      if (!extensionEnabled) {
+        const existingStyle = document.getElementById('xtheme-inject');
+        if (existingStyle) {
+          existingStyle.remove();
         }
-      });
-    }
+        return;
+      }
+
+      const activeTheme = data.activeTheme || 'darkDefault';
+      const customOverrides = data.customOverrides || {};
+
+      const themes = getThemes();
+      const theme = themes[activeTheme] || themes.darkDefault;
+      const colors = { ...theme.colors, ...customOverrides };
+
+      let existingStyle = document.getElementById('xtheme-inject');
+      if (!existingStyle) {
+        existingStyle = document.createElement('style');
+        existingStyle.id = 'xtheme-inject';
+        existingStyle.setAttribute('data-source', 'xtheme-engine');
+      }
+
+      const css = buildThemeCSS(colors);
+      existingStyle.textContent = css;
+
+      if (!existingStyle.parentElement) {
+        if (document.head) {
+          document.head.appendChild(existingStyle);
+        } else {
+          document.addEventListener('readystatechange', () => {
+            if (document.head && !existingStyle.parentElement) {
+              document.head.appendChild(existingStyle);
+            }
+          });
+        }
+      }
+    });
   });
 
-  // Listen for storage changes (theme switched in popup)
+  // Listen for storage changes from popup
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'sync' && (changes.activeTheme || changes.customOverrides)) {
-      const existingStyle = document.getElementById('xtheme-inject');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
+    if ((areaName === 'sync' || areaName === 'local') && 
+        (changes.extensionEnabled || changes.activeTheme || changes.customOverrides)) {
       injectTheme();
     }
+  });
+}
+
+// Watch for route changes (React navigation)
+function setupMutationObserver() {
+  let debounceTimer;
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      injectTheme();
+    }, 100);
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: false,
+    characterData: false
   });
 }
 
@@ -143,6 +176,11 @@ function buildThemeCSS(colors) {
       border-color: ${colors.borderColor} !important;
     }
     
+    /* Text primary - .css-1jxf684 maps to color text */
+    .css-1jxf684 {
+      color: ${colors.textPrimary} !important;
+    }
+    
     /* Accent blue accent colors */
     a, button {
       color: ${colors.accentBlue} !important;
@@ -156,7 +194,11 @@ function buildThemeCSS(colors) {
 
 // Start injection when DOM is ready or immediately
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectTheme);
+  document.addEventListener('DOMContentLoaded', () => {
+    injectTheme();
+    setupMutationObserver();
+  });
 } else {
   injectTheme();
+  setupMutationObserver();
 }

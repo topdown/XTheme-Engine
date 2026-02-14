@@ -159,6 +159,58 @@ select:focus {
   border-color: #1da1f2;
 }
 
+.enable-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.enable-toggle label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0;
+}
+
+.toggle-switch {
+  width: 48px;
+  height: 26px;
+  appearance: none;
+  background-color: #ccc;
+  border: none;
+  border-radius: 13px;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  transition: background-color 0.3s;
+}
+
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background-color: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: left 0.3s;
+}
+
+.toggle-switch:checked {
+  background-color: #1da1f2;
+}
+
+.toggle-switch:checked::before {
+  left: 24px;
+}
+
 .status-message {
   font-size: 13px;
   text-align: center;
