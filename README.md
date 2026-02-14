@@ -17,6 +17,31 @@ A lightweight Chrome Extension that lets you customize Twitter/X interface color
 - **Live Sync**: Theme changes from the popup instantly reflect on the page
 - **Lightweight**: No dependencies, minimal overhead
 
+## Screenshots
+
+### Before & After
+
+**X's Default Dark Theme** vs **XTheme Engine Default**
+
+| Original | XTheme Default |
+|----------|----------------|
+| ![X Dark Theme](screenshots/X-dark.png) | ![XTheme Default](screenshots/default.png) |
+
+### Extension Interface
+
+![XTheme Engine Interface](screenshots/interface.png)
+
+### All Themes Gallery
+
+🎨 **Explore all 6 prebuilt themes:**
+
+- [Dark Default](screenshots/themes/dark-default.png)
+- [Midnight Blue](screenshots/themes/midnight-blue.png)
+- [Deep Purple](screenshots/themes/deep-purple.png)
+- [Ocean Cyan](screenshots/themes/ocean-cyan.png)
+- [Amber Fire](screenshots/themes/amber-fire.png)
+- [Monochrome](screenshots/themes/monochrome.png)
+
 ## Installation
 
 ### From Chrome Web Store (Coming Soon)
