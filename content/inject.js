@@ -243,6 +243,17 @@
 	.xtheme-post-button div {
 		color: ${colors.textPrimary} !important;
 	}
+
+	/* Reply button specific styles */
+	.xtheme-reply-button {
+		color: ${colors.textPrimary} !important;
+		background-color: ${colors.accentBlue} !important;
+	}
+
+	.xtheme-reply-button span,
+	.xtheme-reply-button div {
+		color: ${colors.textPrimary} !important;
+	}
   `;
 	}
 
@@ -261,6 +272,9 @@
 			if (buttonText === 'Post' || buttonText === 'POST' || ariaLabel === 'Post') {
 				// Add our custom class for styling
 				button.classList.add('xtheme-post-button');
+			} else if (buttonText === 'Reply' || buttonText === 'REPLY' || ariaLabel === 'Reply') {
+				// Add our custom class for styling Reply buttons
+				button.classList.add('xtheme-reply-button');
 			}
 		});
 	}
