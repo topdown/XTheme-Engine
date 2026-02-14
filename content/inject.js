@@ -1,56 +1,83 @@
+// Wrap entire script to allow early exit if context is invalidated
+(function() {
+  'use strict';
+  
+  // Early check: If extension context is invalidated, exit silently
+  try {
+    if (!chrome?.runtime?.id) return;
+  } catch {
+    // Extension context is invalidated, exit silently
+    return;
+  }
+
+// Check if extension context is still valid
+function isContextValid() {
+  try {
+    // Accessing chrome.runtime.id will throw if context is invalid
+    if (!chrome?.runtime?.id) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Inject theme CSS into page
 function injectTheme() {
-  // Load theme from local storage first (faster), then sync
-  chrome.storage.local.get(['extensionEnabled', 'activeTheme', 'customOverrides'], (localData) => {
-    const useLocal = localData.extensionEnabled !== undefined;
-    
-    const getStorageData = useLocal 
-      ? Promise.resolve(localData)
-      : new Promise((resolve) => {
-          chrome.storage.sync.get(['extensionEnabled', 'activeTheme', 'customOverrides'], resolve);
-        });
-    
-    Promise.resolve(getStorageData).then((data) => {
-      const extensionEnabled = data.extensionEnabled !== false;
-      
-      if (!extensionEnabled) {
-        const existingStyle = document.getElementById('xtheme-inject');
-        if (existingStyle) {
-          existingStyle.remove();
-        }
-        return;
-      }
-
-      const activeTheme = data.activeTheme || 'darkDefault';
-      const customOverrides = data.customOverrides || {};
-
-      const themes = getThemes();
-      const theme = themes[activeTheme] || themes.darkDefault;
-      const colors = { ...theme.colors, ...customOverrides };
-
-      let existingStyle = document.getElementById('xtheme-inject');
-      if (!existingStyle) {
-        existingStyle = document.createElement('style');
-        existingStyle.id = 'xtheme-inject';
-        existingStyle.setAttribute('data-source', 'xtheme-engine');
-      }
-
-      const css = buildThemeCSS(colors);
-      existingStyle.textContent = css;
-
-      if (!existingStyle.parentElement) {
-        if (document.head) {
-          document.head.appendChild(existingStyle);
-        } else {
-          document.addEventListener('readystatechange', () => {
-            if (document.head && !existingStyle.parentElement) {
-              document.head.appendChild(existingStyle);
-            }
-          });
-        }
+  if (!isContextValid()) return;
+  
+  try {
+    chrome.storage.sync.get(['extensionEnabled', 'activeTheme', 'customOverrides'], (data) => {
+      try {
+        applyThemeData(data || {});
+      } catch (err) {
+        // Silently fail if context is invalid
       }
     });
-  });
+  } catch (err) {
+    // Context might be invalidated, skip silently
+  }
+}
+
+// Apply theme data to the page
+function applyThemeData(data) {
+  const extensionEnabled = data.extensionEnabled !== false;
+  
+  if (!extensionEnabled) {
+    const existingStyle = document.getElementById('xtheme-inject');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    return;
+  }
+
+  const activeTheme = data.activeTheme || 'darkDefault';
+  const customOverrides = data.customOverrides || {};
+
+  const themes = getThemes();
+  const theme = themes[activeTheme] || themes.darkDefault;
+  const colors = { ...theme.colors, ...customOverrides };
+
+  let existingStyle = document.getElementById('xtheme-inject');
+  if (!existingStyle) {
+    existingStyle = document.createElement('style');
+    existingStyle.id = 'xtheme-inject';
+    existingStyle.setAttribute('data-source', 'xtheme-engine');
+  }
+
+  const css = buildThemeCSS(colors);
+  existingStyle.textContent = css;
+
+  if (!existingStyle.parentElement) {
+    if (document.head) {
+      document.head.appendChild(existingStyle);
+    } else {
+      document.addEventListener('readystatechange', () => {
+        if (document.head && !existingStyle.parentElement) {
+          document.head.appendChild(existingStyle);
+        }
+      });
+    }
+  }
 }
 
 // Watch for route changes (React navigation) - only observe when necessary
@@ -188,6 +215,11 @@ function buildThemeCSS(colors) {
       color: ${colors.textPrimary} !important;
     }
     
+    /* Accent icons - .r-yyyyoo maps to fill for SVG icons */
+    .r-yyyyoo {
+      fill: ${colors.accentBlue} !important;
+    }
+    
     /* Accent blue accent colors */
     a, button {
       color: ${colors.accentBlue} !important;
@@ -200,26 +232,45 @@ function buildThemeCSS(colors) {
 }
 
 // Start injection when DOM is ready or immediately
-// Set up listener ONCE at the top level
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if ((areaName === 'sync' || areaName === 'local') && 
-      (changes.extensionEnabled || changes.activeTheme || changes.customOverrides)) {
-    injectTheme();
+// Wrap everything in a try-catch to handle context invalidation gracefully
+(function initXTheme() {
+  try {
+    // Early exit if chrome APIs are not available
+    if (!chrome?.runtime?.id) return;
+    
+    // Set up listener ONCE at the top level (only if context is valid)
+    if (isContextValid()) {
+      try {
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+          if (!isContextValid()) return;
+          
+          try {
+            if ((areaName === 'sync' || areaName === 'local') && 
+                (changes.extensionEnabled || changes.activeTheme || changes.customOverrides)) {
+              injectTheme();
+            }
+          } catch (err) {
+            // Silently ignore errors (context invalidation, etc)
+          }
+        });
+      } catch (err) {
+        // Failed to set up listener - context may be invalid
+      }
+    }
+
+    // Initial injection
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        injectTheme();
+        setupMutationObserver();
+      });
+    } else {
+      injectTheme();
+      setupMutationObserver();
+    }
+  } catch (err) {
+    // Extension context invalidated or other error - fail silently
   }
-});
+})();
 
-// Initial injection
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    injectTheme();
-    setupMutationObserver();
-  });
-} else {
-  injectTheme();
-  setupMutationObserver();
-}
-
-// Cleanup on page unload (important for preventing memory leaks)
-window.addEventListener('unload', () => {
-  cleanupMutationObserver();
-});
+})(); // End of main wrapper IIFE
