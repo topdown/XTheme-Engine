@@ -78,6 +78,9 @@
 				});
 			}
 		}
+
+		// Style Post buttons after theme is applied
+		stylePostButtons();
 	}
 
 	// Watch for route changes (React navigation) - only observe when necessary
@@ -91,6 +94,7 @@
 			if (debounceTimer) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
 				injectTheme();
+				stylePostButtons(); // Re-style Post buttons when DOM changes
 			}, 100);
 		});
 
@@ -228,7 +232,37 @@
 	.r-kemksi {	
     	border-radius: 16px;
 	}
+
+	/* Post button specific styles */
+	.xtheme-post-button {
+		color: ${colors.textPrimary} !important;
+		background-color: ${colors.accentBlue} !important;
+	}
+
+	.xtheme-post-button span,
+	.xtheme-post-button div {
+		color: ${colors.textPrimary} !important;
+	}
   `;
+	}
+
+	// Style Post buttons specifically by finding them by text content or aria-label
+	function stylePostButtons() {
+		if (!isContextValid()) return;
+
+		// Find all buttons and button-like elements (including links)
+		const allButtons = document.querySelectorAll('button, div[role="button"], a[role="button"], a[role="link"], a[aria-label="Post"]');
+		
+		allButtons.forEach(button => {
+			// Check if button contains the text "Post" (case-insensitive)
+			const buttonText = button.textContent.trim();
+			const ariaLabel = button.getAttribute('aria-label');
+			
+			if (buttonText === 'Post' || buttonText === 'POST' || ariaLabel === 'Post') {
+				// Add our custom class for styling
+				button.classList.add('xtheme-post-button');
+			}
+		});
 	}
 
 	// Start injection when DOM is ready or immediately
