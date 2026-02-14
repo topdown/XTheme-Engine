@@ -51,32 +51,39 @@ function injectTheme() {
       }
     });
   });
-
-  // Listen for storage changes from popup
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if ((areaName === 'sync' || areaName === 'local') && 
-        (changes.extensionEnabled || changes.activeTheme || changes.customOverrides)) {
-      injectTheme();
-    }
-  });
 }
 
-// Watch for route changes (React navigation)
+// Watch for route changes (React navigation) - only observe when necessary
+let mutationObserver = null;
+let debounceTimer = null;
+
 function setupMutationObserver() {
-  let debounceTimer;
-  const observer = new MutationObserver(() => {
-    clearTimeout(debounceTimer);
+  if (mutationObserver) return; // Already set up
+  
+  mutationObserver = new MutationObserver(() => {
+    if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       injectTheme();
     }, 100);
   });
 
-  observer.observe(document.documentElement, {
+  mutationObserver.observe(document.documentElement, {
     childList: true,
     subtree: true,
     attributes: false,
     characterData: false
   });
+}
+
+function cleanupMutationObserver() {
+  if (mutationObserver) {
+    mutationObserver.disconnect();
+    mutationObserver = null;
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
 }
 
 // Get all theme definitions
@@ -193,6 +200,15 @@ function buildThemeCSS(colors) {
 }
 
 // Start injection when DOM is ready or immediately
+// Set up listener ONCE at the top level
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if ((areaName === 'sync' || areaName === 'local') && 
+      (changes.extensionEnabled || changes.activeTheme || changes.customOverrides)) {
+    injectTheme();
+  }
+});
+
+// Initial injection
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     injectTheme();
@@ -202,3 +218,8 @@ if (document.readyState === 'loading') {
   injectTheme();
   setupMutationObserver();
 }
+
+// Cleanup on page unload (important for preventing memory leaks)
+window.addEventListener('unload', () => {
+  cleanupMutationObserver();
+});
